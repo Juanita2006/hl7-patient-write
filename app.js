@@ -19,8 +19,8 @@ document.getElementById('patientForm').addEventListener('submit', function(event
         resourceType: "Patient",
         name: [{
             use: "official",
-            given: [name],
-            family: familyName
+            family: familyName,
+            given: [name]
         }],
         gender: gender,
         birthDate: birthDate,
@@ -46,6 +46,8 @@ document.getElementById('patientForm').addEventListener('submit', function(event
         }]
     };
 
+    console.log("Paciente a enviar:", JSON.stringify(patient, null, 2));  // Para depuración
+
     // Enviar los datos usando Fetch API
     fetch('https://hl7-fhir-ehr-juanita-123.onrender.com/patients', {
         method: 'POST',
@@ -54,13 +56,20 @@ document.getElementById('patientForm').addEventListener('submit', function(event
         },
         body: JSON.stringify(patient)
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            return response.text().then(text => {
+                throw new Error(`Error ${response.status}: ${text}`);
+            });
+        }
+        return response.json();
+    })
     .then(data => {
         console.log('Success:', data);
-        alert('Paciente creado exitosamente!');
+        alert('Paciente creado exitosamente con ID: ' + data.id);
     })
     .catch((error) => {
         console.error('Error:', error);
-        alert('Hubo un error al crear el paciente.');
+        alert('Hubo un error al crear el paciente. ' + error.message);
     });
 });

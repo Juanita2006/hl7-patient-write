@@ -1,77 +1,73 @@
-document.getElementById('patientForm').addEventListener('submit', function(event) {
+document.getElementById('patientForm').addEventListener('submit', async function(event) {
     event.preventDefault();
 
     // Obtener los valores del formulario
-    const name = document.getElementById('name').value;
-    const familyName = document.getElementById('familyName').value;
-    const gender = document.getElementById('gender').value;
-    const birthDate = document.getElementById('birthDate').value;
-    const identifierSystem = document.getElementById('identifierSystem').value;
-    const identifierValue = document.getElementById('identifierValue').value;
-    const cellPhone = document.getElementById('cellPhone').value;
-    const email = document.getElementById('email').value;
-    const address = document.getElementById('address').value;
-    const city = document.getElementById('city').value;
-    const postalCode = document.getElementById('postalCode').value;
+    const formData = {
+        name: document.getElementById('name').value,
+        familyName: document.getElementById('familyName').value,
+        gender: document.getElementById('gender').value,
+        birthDate: document.getElementById('birthDate').value,
+        identifierSystem: document.getElementById('identifierSystem').value,
+        identifierValue: document.getElementById('identifierValue').value,
+        cellPhone: document.getElementById('cellPhone').value,
+        email: document.getElementById('email').value,
+        address: document.getElementById('address').value,
+        city: document.getElementById('city').value,
+        postalCode: document.getElementById('postalCode').value
+    };
 
     // Crear el objeto Patient en formato FHIR
     const patient = {
         resourceType: "Patient",
         name: [{
             use: "official",
-            given: [name],
-            family: familyName
+            given: [formData.name],
+            family: formData.familyName
         }],
-        gender: gender,
-        birthDate: birthDate,
+        gender: formData.gender,
+        birthDate: formData.birthDate,
         identifier: [{
-            system: identifierSystem,
-            value: identifierValue
+            system: formData.identifierSystem,
+            value: formData.identifierValue
         }],
         telecom: [{
             system: "phone",
-            value: cellPhone,
+            value: formData.cellPhone,
             use: "home"
         }, {
             system: "email",
-            value: email,
+            value: formData.email,
             use: "home"
         }],
         address: [{
             use: "home",
-            line: [address],
-            city: city,
-            postalCode: postalCode,
+            line: [formData.address],
+            city: formData.city,
+            postalCode: formData.postalCode,
             country: "Colombia"
         }]
     };
 
-    // Enviar los datos usando Fetch API con manejo de CORS
-    fetch('https://hl7-fhir-ehr-juanita-123.onrender.com/patient', {
-        method: 'POST',
-        mode: 'cors',
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        },
-        body: JSON.stringify(patient)
-    })
-    .then(response => {
+    try {
+        const response = await fetch('https://hl7-fhir-ehr-juanita-123.onrender.com/patient', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(patient)
+        });
+
+        const data = await response.json();
+
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            throw new Error(data.error || 'Error al crear el paciente');
         }
-        return response.json();
-    })
-    .then(data => {
+
         console.log('Success:', data);
         alert('Paciente creado exitosamente!');
-    })
-    .catch((error) => {
+        
+    } catch (error) {
         console.error('Error:', error);
-        if (error.message.includes('Failed to fetch')) {
-            alert('Error de conexión con el servidor. Verifica CORS.');
-        } else {
-            alert('Hubo un error al crear el paciente.');
-        }
-    });
+        alert(`Error: ${error.message}`);
+    }
 });

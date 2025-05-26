@@ -1,69 +1,66 @@
-document.getElementById('patientForm').addEventListener('submit', async function(event) {
+document.getElementById('patientForm').addEventListener('submit', function(event) {
     event.preventDefault();
-    
-    const submitBtn = event.target.querySelector('button[type="submit"]');
-    const originalText = submitBtn.textContent;
-    
-    try {
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Enviando...';
 
-        // 1. Obtener datos del formulario
-        const formData = {
-            name: document.getElementById('name').value,
-            familyName: document.getElementById('familyName').value,
-            gender: document.getElementById('gender').value,
-            birthDate: document.getElementById('birthDate').value
-        };
+    // Obtener los valores del formulario
+    const name = document.getElementById('name').value;
+    const familyName = document.getElementById('familyName').value;
+    const gender = document.getElementById('gender').value;
+    const birthDate = document.getElementById('birthDate').value;
+    const identifierSystem = document.getElementById('identifierSystem').value;
+    const identifierValue = document.getElementById('identifierValue').value;
+    const cellPhone = document.getElementById('cellPhone').value;
+    const email = document.getElementById('email').value;
+    const address = document.getElementById('address').value;
+    const city = document.getElementById('city').value;
+    const postalCode = document.getElementById('postalCode').value;
 
-        // 2. Validación básica
-        if (!formData.name || !formData.familyName || !formData.gender || !formData.birthDate) {
-            throw new Error('Complete los campos obligatorios');
-        }
+    // Crear el objeto Patient en formato FHIR
+    const patient = {
+        resourceType: "Patient",
+        name: [{
+            use: "official",
+            given: [name],
+            family: familyName
+        }],
+        gender: gender,
+        birthDate: birthDate,
+        identifier: [{
+            system: identifierSystem,
+            value: identifierValue
+        }],
+        telecom: [{
+            system: "phone",
+            value: cellPhone,
+            use: "home"
+        }, {
+            system: "email",
+            value: email,
+            use: "home"
+        }],
+        address: [{
+            use: "home",
+            line: [address],
+            city: city,
+            postalCode: postalCode,
+            country: "Colombia"
+        }]
+    };
 
-        // 3. URL de prueba - CAMBIAR POR TU URL REAL
-        const API_URL = 'https://hl7-fhir-ehr-juanita-123.onrender.com/patient';
-        
-        // 4. Prueba de conexión primero
-        const testResponse = await fetch(API_URL, {
-            method: 'OPTIONS'
-        });
-        
-        if (!testResponse.ok) {
-            throw new Error(`El servidor no responde (${testResponse.status}). Verifica: 1) Que la URL ${API_URL} sea correcta, 2) Que el servidor esté activo`);
-        }
-
-        // 5. Enviar datos reales
-        const response = await fetch(API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-                resourceType: "Patient",
-                name: [{
-                    use: "official",
-                    given: [formData.name],
-                    family: formData.familyName
-                }],
-                gender: formData.gender,
-                birthDate: formData.birthDate
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`Error del servidor: ${response.status} ${response.statusText}`);
-        }
-
+    // Enviar los datos usando Fetch API
+    fetch('https://hl7-patient-write-juanita-066.onrender.com', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(patient)
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Success:', data);
         alert('Paciente creado exitosamente!');
-        event.target.reset();
-
-    } catch (error) {
-        console.error('Error completo:', error);
-        alert(error.message);
-    } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = originalText;
-    }
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+        alert('Hubo un error al crear el paciente.');
+    });
 });

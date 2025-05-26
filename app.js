@@ -1,14 +1,14 @@
 document.getElementById('patientForm').addEventListener('submit', async function(event) {
     event.preventDefault();
-
-    // Mostrar estado de carga
-    const submitBtn = document.getElementById('submitBtn');
+    
+    const submitBtn = event.target.querySelector('button[type="submit"]');
     const originalText = submitBtn.textContent;
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Enviando...';
-
+    
     try {
-        // Obtener valores del formulario
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Enviando...';
+
+        // 1. Obtener datos del formulario
         const formData = {
             name: document.getElementById('name').value,
             familyName: document.getElementById('familyName').value,
@@ -23,12 +23,12 @@ document.getElementById('patientForm').addEventListener('submit', async function
             postalCode: document.getElementById('postalCode').value
         };
 
-        // Validación básica
+        // 2. Validación básica
         if (!formData.name || !formData.familyName || !formData.gender || !formData.birthDate) {
-            throw new Error('Por favor complete los campos obligatorios');
+            throw new Error('Complete los campos obligatorios');
         }
 
-        // Crear objeto Patient en formato FHIR
+        // 3. Crear objeto FHIR
         const patient = {
             resourceType: "Patient",
             name: [{
@@ -60,33 +60,38 @@ document.getElementById('patientForm').addEventListener('submit', async function
             }]
         };
 
-        // Enviar datos al servidor
-        const response = await fetch('https://hl7-fhir-ehr-juanita-123.onrender.com/patient', {
+        // 4. Enviar al servidor
+        const API_URL = 'https://hl7-fhir-ehr-juanita-123.onrender.com/patient';
+        
+        const response = await fetch(API_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Accept': 'application/json'
             },
             body: JSON.stringify(patient)
         });
 
-        const data = await response.json();
-
+        // 5. Manejar respuesta
         if (!response.ok) {
-            throw new Error(data.message || 'Error al crear el paciente');
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(
+                errorData.detail || 
+                errorData.message || 
+                `Error HTTP ${response.status}`
+            );
         }
 
-        if (data.status !== "success") {
-            throw new Error(data.message || 'Error en la respuesta del servidor');
-        }
-
-        alert('Paciente creado exitosamente! ID: ' + data.patient_id);
-        document.getElementById('patientForm').reset();
+        const result = await response.json();
+        alert(`Paciente creado con ID: ${result.patient_id}`);
+        event.target.reset();
 
     } catch (error) {
-        console.error('Error:', error);
-        alert(error.message || 'Error al procesar la solicitud');
+        console.error('Error completo:', error);
+        alert(error.message.includes('Failed to fetch') 
+            ? 'No se pudo conectar al servidor. Verifique: 1) La URL del backend, 2) Si el servicio está activo, 3) Problemas de CORS' 
+            : error.message);
     } finally {
-        // Restaurar botón
         submitBtn.disabled = false;
         submitBtn.textContent = originalText;
     }

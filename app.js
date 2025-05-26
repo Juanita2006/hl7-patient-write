@@ -46,21 +46,32 @@ document.getElementById('patientForm').addEventListener('submit', function(event
         }]
     };
 
-    // Enviar los datos usando Fetch API
+    // Enviar los datos usando Fetch API con manejo de CORS
     fetch('https://hl7-fhir-ehr-juanita-123.onrender.com/patient', {
         method: 'POST',
+        mode: 'cors',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
         },
         body: JSON.stringify(patient)
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
     .then(data => {
         console.log('Success:', data);
         alert('Paciente creado exitosamente!');
     })
     .catch((error) => {
         console.error('Error:', error);
-        alert('Hubo un error al crear el paciente.');
+        if (error.message.includes('Failed to fetch')) {
+            alert('Error de conexión con el servidor. Verifica CORS.');
+        } else {
+            alert('Hubo un error al crear el paciente.');
+        }
     });
 });
